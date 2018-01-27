@@ -1,0 +1,37 @@
+{
+  "name": "cordova-plugin-callog",
+  "version": "1.0.0",
+  "description": "A plugin to get the device's call log",
+  "cordova": {
+    "id": "cordova-plugin-calllog",
+    "platforms": [
+      "android"
+    ]
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/creacore-team/cordova-plugin-calllog.git"
+  },
+  "keywords": [
+    "cordova",
+    "calllog",
+    "ecosystem:cordova",
+    "cordova-android"
+  ],
+  "engines": [
+    {
+      "name": "cordova",
+      "version": ">=3.0.0"
+    },
+    {
+      "name": "cordova-android",
+      "version": ">=5.0.0"
+    }
+  ],
+  "author": "Creacore",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/creacore-team/cordova-plugin-calllog/issues"
+  },
+  "homepage": "https://github.com/creacore-team/cordova-plugin-calllog#readme"
+}
