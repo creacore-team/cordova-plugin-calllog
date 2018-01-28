@@ -4,4 +4,4 @@ Here is a wrapper for the ionic-native (https://github.com/ionic-team/ionic-nati
 
 Just copy this call-log folder to your node_modules/@ionic-native
 
-(a pull-request to official repository has submited for auto integration)
+(a pull-request to official repository has been submited for auto integration)
