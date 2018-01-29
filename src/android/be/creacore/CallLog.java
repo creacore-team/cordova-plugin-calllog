@@ -16,6 +16,10 @@ import org.json.JSONObject;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 
 public class CallLog extends CordovaPlugin {
     private static final String GET_CALL_LOG = "getCallLog";
@@ -81,19 +85,36 @@ public class CallLog extends CordovaPlugin {
     private void getCallLog(String dateFrom, String dateTo, List<Filter> filters)
     {
         if(callLogPermissionGranted(Manifest.permission.READ_CALL_LOG)) {
-
-            String[] fields = {
-                android.provider.CallLog.Calls.DATE,
-                android.provider.CallLog.Calls.NUMBER,
-                android.provider.CallLog.Calls.TYPE,
-                android.provider.CallLog.Calls.DURATION,
-                android.provider.CallLog.Calls.NEW,
-                android.provider.CallLog.Calls.CACHED_NAME,
-                android.provider.CallLog.Calls.CACHED_NUMBER_TYPE,
-                android.provider.CallLog.Calls.CACHED_NUMBER_LABEL,
-                android.provider.CallLog.Calls.VIA_NUMBER,
-                android.provider.CallLog.Calls.PHONE_ACCOUNT_ID,
+            boolean has_via_number = true;
+            List<String> fields = new ArrayList<String>();
+            String[] fields_names = {
+                "DATE",
+                "NUMBER",
+                "TYPE",
+                "DURATION",
+                "NEW",
+                "CACHED_NAME",
+                "CACHED_NUMBER_TYPE",
+                "CACHED_NUMBER_LABEL",
+                "VIA_NUMBER",
+                "PHONE_ACCOUNT_ID"
             };
+
+            for(String field_name: fields_names)
+            {
+                try
+                {
+                    Field f = android.provider.CallLog.Calls.class.getField(field_name);
+                    if(f != null)
+                        fields.add(f.get(null).toString());
+                    else
+                        has_via_number = false;
+                }
+                catch(Exception e)
+                {
+                    has_via_number = false;
+                }
+            }
 
             List<String> mSelectionArgs = new ArrayList<String>();
             String mSelectionClause = null;
@@ -129,7 +150,7 @@ public class CallLog extends CordovaPlugin {
             try {
                 ContentResolver contentResolver = cordova.getActivity().getContentResolver();
                 Cursor mCursor = contentResolver.query(android.provider.CallLog.Calls.CONTENT_URI,
-                    fields,
+                    fields.toArray(new String[0]),
                     mSelectionClause,
                     mSelectionArgs.toArray(new String[0]),
                     android.provider.CallLog.Calls.DEFAULT_SORT_ORDER
@@ -148,8 +169,15 @@ public class CallLog extends CordovaPlugin {
                         callLogItem.put("cachedName", mCursor.getString(5));
                         callLogItem.put("cachedNumberType", mCursor.getInt(6));
                         callLogItem.put("cachedNumberLabel", mCursor.getInt(7));
-                        callLogItem.put("viaNumber", mCursor.getString(8));
-                        callLogItem.put("phoneAccountId", mCursor.getString(9));
+                        if(has_via_number)
+                        {
+                            callLogItem.put("viaNumber", mCursor.getString(8));
+                            callLogItem.put("phoneAccountId", mCursor.getString(9));
+                        }
+                        else
+                        {
+                            callLogItem.put("phoneAccountId", mCursor.getString(8));
+                        }
 
                         result.put(callLogItem);
                     }
