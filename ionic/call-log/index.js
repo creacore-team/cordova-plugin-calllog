@@ -40,15 +40,13 @@ var CallLog = (function (_super) {
         return _super !== null && _super.apply(this, arguments) || this;
     }
     /**
-     * This function does something
-     * @param dateFrom {string} get call logs from this date (format yyyy-dd-mm)
-     * @param dateTo {string} get call logs until this date (format yyyy-dd-mm)
+     * This function return the call logs
      * @param filters {object[]} array of object to filter the query
      * Object must respect this structure {'name':'...', 'value': '...', 'operator': '=='}
      * (see https://github.com/creacore-team/cordova-plugin-calllog for more details)
      * @return {Promise<any>}
      */
-    CallLog.prototype.getCallLog = function (dateFrom, dateTo, filters) { return; };
+    CallLog.prototype.getCallLog = function (filters) { return; };
     /**
      * Check permission
      * @returns {Promise<any>}
@@ -67,7 +65,7 @@ var CallLog = (function (_super) {
     __decorate([
         Cordova(),
         __metadata("design:type", Function),
-        __metadata("design:paramtypes", [String, String, Array]),
+        __metadata("design:paramtypes", [Array]),
         __metadata("design:returntype", Promise)
     ], CallLog.prototype, "getCallLog", null);
     __decorate([
