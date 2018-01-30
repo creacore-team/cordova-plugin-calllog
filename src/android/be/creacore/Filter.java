@@ -11,6 +11,7 @@ public class Filter {
     private String operator;
 
     public static String[] validNames = {
+        android.provider.CallLog.Calls.DATE,
         android.provider.CallLog.Calls.NUMBER,
         android.provider.CallLog.Calls.DURATION,
         android.provider.CallLog.Calls.TYPE,

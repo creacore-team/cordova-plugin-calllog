@@ -4,6 +4,7 @@ import android.Manifest;
 import android.content.ContentResolver;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
+import android.os.Build;
 
 import org.apache.cordova.CallbackContext;
 import org.apache.cordova.CordovaPlugin;
@@ -13,13 +14,10 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
-import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
-import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
 
 public class CallLog extends CordovaPlugin {
     private static final String GET_CALL_LOG = "getCallLog";
@@ -32,23 +30,10 @@ public class CallLog extends CordovaPlugin {
         callback = callbackContext;
 
         if(GET_CALL_LOG.equals(action)) {
-            String dateFrom = "";
-            String dateTo = "";
-
-            // dateFrom Arg
-            if(Utils.isValidDate(args.getString(0))) {
-                dateFrom = args.getString(0);
-            }
-
-            // dateTo Arg
-            if(Utils.isValidDate(args.getString(1))) {
-                dateTo = args.getString(1);
-            }
-
             // filterNumbers Arg
             List<Filter> filters = new ArrayList<Filter>();
-            if(!args.isNull(2)) {
-                JSONArray tmpFilter = args.getJSONArray(2);
+            if(!args.isNull(0)) {
+                JSONArray tmpFilter = args.getJSONArray(0);
                 if (tmpFilter.length() > 0) {
                     for (int i = 0; i < tmpFilter.length(); i++) {
                         Filter filter = new Filter();
@@ -65,11 +50,7 @@ public class CallLog extends CordovaPlugin {
                 }
             }
 
-            getCallLog(
-                dateFrom,
-                dateTo,
-                filters
-            );
+            getCallLog(filters);
             return true;
         } else if(HAS_READ_PERMISSION.equals(action)) {
             hasReadPermission();
@@ -82,66 +63,46 @@ public class CallLog extends CordovaPlugin {
         }
     }
 
-    private void getCallLog(String dateFrom, String dateTo, List<Filter> filters)
+    private void getCallLog(List<Filter> filters)
     {
         if(callLogPermissionGranted(Manifest.permission.READ_CALL_LOG)) {
-            boolean has_via_number = true;
             List<String> fields = new ArrayList<String>();
-            String[] fields_names = {
-                "DATE",
-                "NUMBER",
-                "TYPE",
-                "DURATION",
-                "NEW",
-                "CACHED_NAME",
-                "CACHED_NUMBER_TYPE",
-                "CACHED_NUMBER_LABEL",
-                "VIA_NUMBER",
-                "PHONE_ACCOUNT_ID"
+            String[] fields_names = new String[]{
+                android.provider.CallLog.Calls.DATE,
+                android.provider.CallLog.Calls.NUMBER,
+                android.provider.CallLog.Calls.TYPE,
+                android.provider.CallLog.Calls.DURATION,
+                android.provider.CallLog.Calls.NEW,
+                android.provider.CallLog.Calls.CACHED_NAME,
+                android.provider.CallLog.Calls.CACHED_NUMBER_TYPE,
+                android.provider.CallLog.Calls.CACHED_NUMBER_LABEL
             };
+            Collections.addAll(fields, fields_names);
 
-            for(String field_name: fields_names)
-            {
-                try
-                {
-                    Field f = android.provider.CallLog.Calls.class.getField(field_name);
-                    if(f != null)
-                        fields.add(f.get(null).toString());
-                    else
-                        has_via_number = false;
-                }
-                catch(Exception e)
-                {
-                    has_via_number = false;
-                }
+            // Detect specifics version
+            if(android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                fields.add(android.provider.CallLog.Calls.PHONE_ACCOUNT_ID);
+            }
+            if(android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                fields.add(android.provider.CallLog.Calls.VIA_NUMBER);
             }
 
             List<String> mSelectionArgs = new ArrayList<String>();
             String mSelectionClause = null;
-            Timestamp time = null;
 
-            // Date From parameter
-            if(dateFrom.length() > 0)
-            {
-                mSelectionClause = Utils.appendClause(mSelectionClause, android.provider.CallLog.Calls.DATE + " >= ?");
-                time = Utils.convertStringToTimestamp(dateFrom);
-                if(time != null) {
-                    mSelectionArgs.add(String.valueOf(time.getTime()));
-                }
-            }
-
-            // Date To parameter
-            if(dateTo.length() > 0) {
-                mSelectionClause = Utils.appendClause(mSelectionClause, android.provider.CallLog.Calls.DATE + " <= ?");
-                time = Utils.convertStringToTimestamp(dateTo);
-                if(time != null) {
-                    mSelectionArgs.add(String.valueOf(time.getTime()));
-                }
-            }
-
-            // Other filters parameter
+            // Filters parameter
             if(filters.size() > 0) {
                 for(Filter f: filters) {
+                    // Detect specific version
+                    if(android.os.Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP &&
+                            f.getName() == android.provider.CallLog.Calls.PHONE_ACCOUNT_ID) {
+                        continue;
+                    }
+                    if(android.os.Build.VERSION.SDK_INT < Build.VERSION_CODES.N &&
+                            f.getName() == android.provider.CallLog.Calls.VIA_NUMBER) {
+                        continue;
+                    }
+
                     mSelectionClause = Utils.appendFilterToClause(f, mSelectionClause);
                     mSelectionArgs.add(f.getValue());
                 }
@@ -169,14 +130,15 @@ public class CallLog extends CordovaPlugin {
                         callLogItem.put("cachedName", mCursor.getString(5));
                         callLogItem.put("cachedNumberType", mCursor.getInt(6));
                         callLogItem.put("cachedNumberLabel", mCursor.getInt(7));
-                        if(has_via_number)
-                        {
-                            callLogItem.put("viaNumber", mCursor.getString(8));
-                            callLogItem.put("phoneAccountId", mCursor.getString(9));
+
+                        // Detect specifics version
+                        int index = 8;
+                        if(android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                            callLogItem.put("phoneAccountId", mCursor.getString(index));
+                            index++;
                         }
-                        else
-                        {
-                            callLogItem.put("phoneAccountId", mCursor.getString(8));
+                        if(android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                            callLogItem.put("viaNumber", mCursor.getString(index));
                         }
 
                         result.put(callLogItem);

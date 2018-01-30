@@ -9,7 +9,7 @@ Cordova plugin to access the call history on a device and that can be filtered
 
 ## Methods
 
-- getCallLog(dateFrom, dateTo, filters, callbackSuccess, callbackError);
+- getCallLog(filters, callbackSuccess, callbackError);
 - hasReadPermission(successCallback, errorCallback);
 - requestReadPermission(successCallback, errorCallback);
 
@@ -26,18 +26,24 @@ Then you can use the main function getCallLog(), here is an example:
         "name": "number",
         "value": "+32477000000",
         "operator": "==",
+    },
+    {
+        "name": "date",
+        "value": 1517266800000,
+        "operator": ">="
     }];
 
-    window.plugins.callLog.getCallLog('2018-01-01', '', filter, function(data) {
+    window.plugins.callLog.getCallLog(filters, function(data) {
          console.log(data);
     }, function() {
          // Error
     });
 
-This will return all calls from/to the number +32477000000 since 2018-01-01
+This will return all calls from/to the number +32477000000 since 2018-01-30
 
 ## Filter availables
 
+- date : date in milliseconds since the epoch
 - number : phone number
 - duration : call duration
 - type : type of call (see https://developer.android.com/reference/android/provider/CallLog.Calls.html#TYPE)
@@ -56,5 +62,9 @@ getCallLog() return an array of objects with these values
 - CACHED_NAME
 - CACHED_NUMBER_TYPE
 - CACHED_NUMBER_LABEL
-- VIA_NUMBER
+
+(Android API >= 21)
 - PHONE_ACCOUNT_ID
+
+(Android API >= 24)
+- VIA_NUMBER
