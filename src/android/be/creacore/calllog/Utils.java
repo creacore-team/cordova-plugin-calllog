@@ -1,4 +1,4 @@
-package be.creacore;
+package be.creacore.calllog;
 
 import java.sql.Timestamp;
 import java.text.DateFormat;

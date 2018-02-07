@@ -1,4 +1,4 @@
-package be.creacore;
+package be.creacore.calllog;
 
 import android.Manifest;
 import android.content.ContentResolver;
@@ -17,7 +17,6 @@ import org.json.JSONObject;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.lang.reflect.Field;
 
 public class CallLog extends CordovaPlugin {
     private static final String GET_CALL_LOG = "getCallLog";

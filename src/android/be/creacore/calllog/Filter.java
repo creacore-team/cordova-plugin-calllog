@@ -1,4 +1,4 @@
-package be.creacore;
+package be.creacore.calllog;
 
 import android.provider.*;
 import android.provider.CallLog;

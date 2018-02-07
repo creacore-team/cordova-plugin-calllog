@@ -22,7 +22,7 @@
   <platform name="android">
     <config-file target="res/xml/config.xml" parent="/*">
       <feature name="CallLog">
-        <param name="android-package" value="be.creacore.CallLog"/>
+        <param name="android-package" value="be.creacore.calllog.CallLog"/>
       </feature>
     </config-file>
 
@@ -30,9 +30,9 @@
       <uses-permission android:name="android.permission.READ_CALL_LOG" />
     </config-file>
 
-    <source-file src="src/android/be/creacore/CallLog.java" target-dir="src/be/creacore" />
-    <source-file src="src/android/be/creacore/Utils.java" target-dir="src/be/creacore" />
-    <source-file src="src/android/be/creacore/Filter.java" target-dir="src/be/creacore" />
+    <source-file src="src/android/be/creacore/calllog/CallLog.java" target-dir="src/be/creacore/calllog" />
+    <source-file src="src/android/be/creacore/calllog/Utils.java" target-dir="src/be/creacore/calllog" />
+    <source-file src="src/android/be/creacore/calllog/Filter.java" target-dir="src/be/creacore/calllog" />
 
     <js-module src="www/android/calllog.js" name="CallLogAndroid">
       <merges target="window.plugins.callLog" />
