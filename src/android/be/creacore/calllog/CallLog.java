@@ -1,10 +1,13 @@
 package be.creacore.calllog;
 
 import android.Manifest;
+import android.provider.ContactsContract;
 import android.content.ContentResolver;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.os.Build;
+import android.util.Log;
+
 
 import org.apache.cordova.CallbackContext;
 import org.apache.cordova.CordovaPlugin;
@@ -22,6 +25,21 @@ public class CallLog extends CordovaPlugin {
     private static final String GET_CALL_LOG = "getCallLog";
     private static final String HAS_READ_PERMISSION = "hasReadPermission";
     private static final String REQUEST_READ_PERMISSION = "requestReadPermission";
+    private static final String[] PERMISSIONS = {Manifest.permission.READ_CALL_LOG, Manifest.permission.READ_CONTACTS};
+
+    private static final String[] PROJECTION =
+        {
+            ContactsContract.Data._ID,
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB ?
+                    ContactsContract.Data.DISPLAY_NAME_PRIMARY :
+                    ContactsContract.Data.DISPLAY_NAME,
+                    ContactsContract.Data.CONTACT_ID,
+                    ContactsContract.Data.PHOTO_URI,
+                    ContactsContract.Data.PHOTO_THUMBNAIL_URI
+        };
+
+    private static final String SELECTION =
+            ContactsContract.CommonDataKinds.Phone.NUMBER + " LIKE ? ";
 
     private CallbackContext callback;
     @Override
@@ -90,7 +108,7 @@ public class CallLog extends CordovaPlugin {
 
     private void getCallLog(ArrayList<ArrayList<Filter>> filters)
     {
-        if(callLogPermissionGranted(Manifest.permission.READ_CALL_LOG)) {
+        if(callLogPermissionGranted(PERMISSIONS)) {
             List<String> fields = new ArrayList<String>();
             String[] fields_names = new String[]{
                 android.provider.CallLog.Calls.DATE,
@@ -177,6 +195,29 @@ public class CallLog extends CordovaPlugin {
                             callLogItem.put("viaNumber", mCursor.getString(index));
                         }
 
+                        String mSearchStringContact = "%" + mCursor.getString(1) + "%";
+                        String[] mSelectionArgsContact = { "" };
+                        mSelectionArgsContact[0] = mSearchStringContact;
+                        Cursor mContactCursor = contentResolver.query(
+                            ContactsContract.Data.CONTENT_URI,
+                            PROJECTION,
+                            SELECTION,
+                            mSelectionArgsContact,
+                            null
+                        );
+
+                        callLogItem.put("name", mCursor.getString(5));
+                        callLogItem.put("contact", null);
+                        callLogItem.put("photo", "");
+                        callLogItem.put("thumbPhoto", "");
+                        if (mContactCursor.moveToFirst()) {
+                            if(!mContactCursor.isAfterLast()) {
+                                callLogItem.put("name", mContactCursor.getString(1));
+                                callLogItem.put("contact", mContactCursor.getInt(2));
+                                callLogItem.put("photo", mContactCursor.getString(3));
+                                callLogItem.put("thumbPhoto", mContactCursor.getString(4));
+                            }
+                        }
                         result.put(callLogItem);
                     }
                 }
@@ -189,20 +230,25 @@ public class CallLog extends CordovaPlugin {
         }
     }
     private void hasReadPermission() {
-        this.callback.sendPluginResult(new PluginResult(PluginResult.Status.OK, callLogPermissionGranted(Manifest.permission.READ_CALL_LOG)));
+        this.callback.sendPluginResult(new PluginResult(PluginResult.Status.OK, callLogPermissionGranted(PERMISSIONS)));
     }
 
     private void requestReadPermission() {
-        requestPermission(Manifest.permission.READ_CALL_LOG);
+        requestPermission(PERMISSIONS);
     }
 
-    private boolean callLogPermissionGranted(String type) {
-        return cordova.hasPermission(type);
+    private boolean callLogPermissionGranted(String[] type) {
+        boolean perm = true;
+        for(int i=0; i < type.length; i++) {
+            if (!cordova.hasPermission(type[i]))
+                perm = false;
+        }
+        return perm;
     }
 
-    private void requestPermission(String type) {
+    private void requestPermission(String[] type) {
         if (!callLogPermissionGranted(type)) {
-            cordova.requestPermission(this, 12345, type);
+            cordova.requestPermissions(this, 0, type);
         } else {
             this.callback.success();
         }
