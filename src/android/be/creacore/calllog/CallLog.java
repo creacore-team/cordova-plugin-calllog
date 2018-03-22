@@ -42,9 +42,29 @@ public class CallLog extends CordovaPlugin {
                         } catch (Exception e) {
                             callback.error(e.getMessage());
                         }
-                        filter.setValue(filterObject.getString("value"));
                         filter.setOperator(filterObject.getString("operator"));
-                        filters.add(filter);
+
+                        // Is an array of values ?
+                        JSONArray values = filterObject.getJSONArray("value");
+                        if(values != null) {
+                            for(int j=0; j < values.length(); j++) {
+                                Filter f = new Filter();
+                                try {
+                                    f.setName(filter.getName());
+                                } catch (Exception e) {
+                                    callback.error(e.getMessage());
+                                }
+                                f.setOperator(filter.getOperator());
+                                f.setValue(values.getString(j));
+                                f.setOperation("OR");
+                                filters.add(f);
+                            }
+                        }
+                        // Single value
+                        else {
+                            filter.setValue(filterObject.getString("value"));
+                            filters.add(filter);
+                        }
                     }
                 }
             }

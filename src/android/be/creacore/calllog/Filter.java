@@ -9,6 +9,7 @@ public class Filter {
     private String name;
     private String value;
     private String operator;
+    private String operation = "AND";
 
     public static String[] validNames = {
         android.provider.CallLog.Calls.DATE,
@@ -44,5 +45,13 @@ public class Filter {
 
     public void setOperator(String operator) {
         this.operator = operator;
+    }
+
+    public void setOperation(String operation) {
+        this.operation = operation;
+    }
+
+    public String getOperation() {
+        return this.operation;
     }
 }

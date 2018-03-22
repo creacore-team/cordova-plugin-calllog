@@ -41,13 +41,38 @@ Then you can use the main function getCallLog(), here is an example:
 
 This will return all calls from/to the number +32477000000 since 2018-01-30
 
-## Filter availables
+## Filters available
 
 - date : date in milliseconds since the epoch
 - number : phone number
 - duration : call duration
 - type : type of call (see https://developer.android.com/reference/android/provider/CallLog.Calls.html#TYPE)
 - subscription_id : id of the sim card (useful for dual sim)
+
+## Operators available
+\>, >=, <, <=, ==, like
+
+Here is an example with the operator like
+
+    let filters = [{
+        "name": "number",
+        "value": "+32%",
+        "operator": "like",
+    }]
+
+This will return all calls from/to the numbers beginning with '+32'
+
+## Value
+
+Value can be a string, or can be an array, here is an example:
+
+    let filters = [{
+        "name": "number",
+        "value": ["+32477000000", "+32478000000"],
+        "operator": "==",
+    }]
+
+This will return all calls from/to the numbers +32477000000 and +32478000000
 
 ## Returned values
 
