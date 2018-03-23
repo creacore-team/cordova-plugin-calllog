@@ -30,7 +30,7 @@ public class CallLog extends CordovaPlugin {
 
         if(GET_CALL_LOG.equals(action)) {
             // filterNumbers Arg
-            List<Filter> filters = new ArrayList<Filter>();
+            ArrayList<ArrayList<Filter>> filters = new ArrayList<ArrayList<Filter>>();
             if(!args.isNull(0)) {
                 JSONArray tmpFilter = args.getJSONArray(0);
                 if (tmpFilter.length() > 0) {
@@ -48,6 +48,7 @@ public class CallLog extends CordovaPlugin {
                         try {
                             JSONArray values = filterObject.getJSONArray("value");
                             if (values != null) {
+                                ArrayList<Filter> subFilters = new ArrayList<Filter>();
                                 for (int j = 0; j < values.length(); j++) {
                                     Filter f = new Filter();
                                     try {
@@ -58,14 +59,17 @@ public class CallLog extends CordovaPlugin {
                                     f.setOperator(filter.getOperator());
                                     f.setValue(values.getString(j));
                                     f.setOperation("OR");
-                                    filters.add(f);
+                                    subFilters.add(f);
                                 }
+                                filters.add(subFilters);
                             }
                         }
                         // Single value
                         catch(JSONException e) {
+                            ArrayList<Filter> subFilters = new ArrayList<Filter>();
                             filter.setValue(filterObject.getString("value"));
-                            filters.add(filter);
+                            subFilters.add(filter);
+                            filters.add(subFilters);
                         }
                     }
                 }
@@ -84,7 +88,7 @@ public class CallLog extends CordovaPlugin {
         }
     }
 
-    private void getCallLog(List<Filter> filters)
+    private void getCallLog(ArrayList<ArrayList<Filter>> filters)
     {
         if(callLogPermissionGranted(Manifest.permission.READ_CALL_LOG)) {
             List<String> fields = new ArrayList<String>();
@@ -113,19 +117,30 @@ public class CallLog extends CordovaPlugin {
 
             // Filters parameter
             if(filters.size() > 0) {
-                for(Filter f: filters) {
-                    // Detect specific version
-                    if(android.os.Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP &&
-                            f.getName() == android.provider.CallLog.Calls.PHONE_ACCOUNT_ID) {
-                        continue;
-                    }
-                    if(android.os.Build.VERSION.SDK_INT < Build.VERSION_CODES.N &&
-                            f.getName() == android.provider.CallLog.Calls.VIA_NUMBER) {
-                        continue;
+                for(ArrayList<Filter> subfilters: filters) {
+                    String mSelectionSubClause = null;
+                    for(Filter f: subfilters) {
+                        // Detect specific version
+                        if (android.os.Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP &&
+                                f.getName() == android.provider.CallLog.Calls.PHONE_ACCOUNT_ID) {
+                            continue;
+                        }
+                        if (android.os.Build.VERSION.SDK_INT < Build.VERSION_CODES.N &&
+                                f.getName() == android.provider.CallLog.Calls.VIA_NUMBER) {
+                            continue;
+                        }
+                        mSelectionSubClause = Utils.appendFilterToClause(f, mSelectionSubClause);
+                        mSelectionArgs.add(f.getValue());
                     }
 
-                    mSelectionClause = Utils.appendFilterToClause(f, mSelectionClause);
-                    mSelectionArgs.add(f.getValue());
+                    if(mSelectionClause == null)
+                    {
+                        mSelectionClause = '(' + mSelectionSubClause + ')';
+                    }
+                    else
+                    {
+                        mSelectionClause += " AND (" + mSelectionSubClause + ')';
+                    }
                 }
             }
 
