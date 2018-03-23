@@ -45,23 +45,25 @@ public class CallLog extends CordovaPlugin {
                         filter.setOperator(filterObject.getString("operator"));
 
                         // Is an array of values ?
-                        JSONArray values = filterObject.getJSONArray("value");
-                        if(values != null) {
-                            for(int j=0; j < values.length(); j++) {
-                                Filter f = new Filter();
-                                try {
-                                    f.setName(filter.getName());
-                                } catch (Exception e) {
-                                    callback.error(e.getMessage());
+                        try {
+                            JSONArray values = filterObject.getJSONArray("value");
+                            if (values != null) {
+                                for (int j = 0; j < values.length(); j++) {
+                                    Filter f = new Filter();
+                                    try {
+                                        f.setName(filter.getName());
+                                    } catch (Exception e) {
+                                        callback.error(e.getMessage());
+                                    }
+                                    f.setOperator(filter.getOperator());
+                                    f.setValue(values.getString(j));
+                                    f.setOperation("OR");
+                                    filters.add(f);
                                 }
-                                f.setOperator(filter.getOperator());
-                                f.setValue(values.getString(j));
-                                f.setOperation("OR");
-                                filters.add(f);
                             }
                         }
                         // Single value
-                        else {
+                        catch(JSONException e) {
                             filter.setValue(filterObject.getString("value"));
                             filters.add(filter);
                         }
