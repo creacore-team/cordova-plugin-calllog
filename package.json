@@ -1,6 +1,6 @@
 {
   "name": "cordova-plugin-calllog",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "description": "A plugin to get the device's call log",
   "cordova": {
     "id": "cordova-plugin-calllog",
