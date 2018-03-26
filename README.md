@@ -1,7 +1,7 @@
 # cordova-plugin-callLog
 
 Android only
-Cordova plugin to access the call history on a device and that can be filtered
+Cordova plugin to access the call history on a device. Results can be filtered through several parameters.
 
 ## Installation
 
@@ -76,7 +76,7 @@ This will return all calls from/to the numbers +32477000000 and +32478000000
 
 ## Returned values
 
-getCallLog() return an array of objects with these values
+getCallLog() returns an array of objects with these values
 (see https://developer.android.com/reference/android/provider/CallLog.Calls.html)
 
 - DATE
