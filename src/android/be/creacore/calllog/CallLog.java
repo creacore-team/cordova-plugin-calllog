@@ -1,13 +1,14 @@
 package be.creacore.calllog;
 
 import android.Manifest;
+import android.content.Context;
 import android.provider.ContactsContract;
 import android.content.ContentResolver;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.os.Build;
-import android.util.Log;
-
+import android.telephony.PhoneNumberUtils;
+import android.telephony.TelephonyManager;
 
 import org.apache.cordova.CallbackContext;
 import org.apache.cordova.CordovaPlugin;
@@ -29,18 +30,17 @@ public class CallLog extends CordovaPlugin {
     private static final String[] PERMISSIONS = {Manifest.permission.READ_CALL_LOG, Manifest.permission.READ_CONTACTS};
 
     private static final String[] PROJECTION =
-            {
-                    ContactsContract.Data._ID,
-                    Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB ?
-                            ContactsContract.Data.DISPLAY_NAME_PRIMARY :
-                            ContactsContract.Data.DISPLAY_NAME,
-                    ContactsContract.Data.CONTACT_ID,
-                    ContactsContract.Data.PHOTO_URI,
-                    ContactsContract.Data.PHOTO_THUMBNAIL_URI
-            };
+    {
+        ContactsContract.Data._ID,
+        Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB ?
+                ContactsContract.Data.DISPLAY_NAME_PRIMARY :
+                ContactsContract.Data.DISPLAY_NAME,
+        ContactsContract.Data.CONTACT_ID,
+        ContactsContract.Data.PHOTO_URI,
+        ContactsContract.Data.PHOTO_THUMBNAIL_URI
+    };
 
-    private static final String SELECTION =
-            ContactsContract.CommonDataKinds.Phone.NUMBER + " LIKE ? ";
+    private static final String SELECTION = ContactsContract.CommonDataKinds.Phone.NORMALIZED_NUMBER + " LIKE ? ";
 
     private CallbackContext callback;
     @Override
@@ -176,6 +176,10 @@ public class CallLog extends CordovaPlugin {
                 JSONArray result = new JSONArray();
 
                 if (mCursor != null) {
+                    Context context = this.cordova.getActivity();
+                    TelephonyManager tm = (TelephonyManager) context.getSystemService(context.TELEPHONY_SERVICE);
+                    String countryCode = tm.getSimCountryIso().toUpperCase();
+
                     while (mCursor.moveToNext()) {
                         JSONObject callLogItem = new JSONObject();
                         callLogItem.put("date", mCursor.getLong(0));
@@ -198,8 +202,8 @@ public class CallLog extends CordovaPlugin {
                         }
 
                         // Fill in contact name
-                        callLogItem.put("name", mCursor.getString(5));
-                        callLogItem.put("contact", null);
+                        callLogItem.put("name", (mCursor.isNull(5))?"":mCursor.getString(5));
+                        callLogItem.put("contact", "");
                         callLogItem.put("photo", "");
                         callLogItem.put("thumbPhoto", "");
                         Cursor mContactCursor;
@@ -209,9 +213,13 @@ public class CallLog extends CordovaPlugin {
                         }
                         else
                         {
-                            String mSearchStringContact = "%" + mCursor.getString(1) + "%";
-                            String[] mSelectionArgsContact = { "" };
-                            mSelectionArgsContact[0] = mSearchStringContact;
+                            String number = mCursor.getString(1);
+                            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP && !countryCode.isEmpty()) {
+                                 number = PhoneNumberUtils.formatNumberToE164(number, countryCode);
+                                 number = PhoneNumberUtils.normalizeNumber(number);
+                            }
+
+                            String[] mSelectionArgsContact = { "%" + number + "%" };
                             mContactCursor = contentResolver.query(
                                     ContactsContract.Data.CONTENT_URI,
                                     PROJECTION,
