@@ -1,10 +1,14 @@
 package be.creacore.calllog;
 
 import android.Manifest;
+import android.content.Context;
+import android.provider.ContactsContract;
 import android.content.ContentResolver;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.os.Build;
+import android.telephony.PhoneNumberUtils;
+import android.telephony.TelephonyManager;
 
 import org.apache.cordova.CallbackContext;
 import org.apache.cordova.CordovaPlugin;
@@ -16,12 +20,27 @@ import org.json.JSONObject;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Hashtable;
 import java.util.List;
 
 public class CallLog extends CordovaPlugin {
     private static final String GET_CALL_LOG = "getCallLog";
     private static final String HAS_READ_PERMISSION = "hasReadPermission";
     private static final String REQUEST_READ_PERMISSION = "requestReadPermission";
+    private static final String[] PERMISSIONS = {Manifest.permission.READ_CALL_LOG, Manifest.permission.READ_CONTACTS};
+
+    private static final String[] PROJECTION =
+    {
+        ContactsContract.Data._ID,
+        Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB ?
+                ContactsContract.Data.DISPLAY_NAME_PRIMARY :
+                ContactsContract.Data.DISPLAY_NAME,
+        ContactsContract.Data.CONTACT_ID,
+        ContactsContract.Data.PHOTO_URI,
+        ContactsContract.Data.PHOTO_THUMBNAIL_URI
+    };
+
+    private static final String SELECTION = ContactsContract.CommonDataKinds.Phone.NORMALIZED_NUMBER + " LIKE ? ";
 
     private CallbackContext callback;
     @Override
@@ -90,17 +109,18 @@ public class CallLog extends CordovaPlugin {
 
     private void getCallLog(ArrayList<ArrayList<Filter>> filters)
     {
-        if(callLogPermissionGranted(Manifest.permission.READ_CALL_LOG)) {
+        if(callLogPermissionGranted(PERMISSIONS)) {
+            Hashtable<String, Cursor> contacts = new Hashtable<String, Cursor>();
             List<String> fields = new ArrayList<String>();
             String[] fields_names = new String[]{
-                android.provider.CallLog.Calls.DATE,
-                android.provider.CallLog.Calls.NUMBER,
-                android.provider.CallLog.Calls.TYPE,
-                android.provider.CallLog.Calls.DURATION,
-                android.provider.CallLog.Calls.NEW,
-                android.provider.CallLog.Calls.CACHED_NAME,
-                android.provider.CallLog.Calls.CACHED_NUMBER_TYPE,
-                android.provider.CallLog.Calls.CACHED_NUMBER_LABEL
+                    android.provider.CallLog.Calls.DATE,
+                    android.provider.CallLog.Calls.NUMBER,
+                    android.provider.CallLog.Calls.TYPE,
+                    android.provider.CallLog.Calls.DURATION,
+                    android.provider.CallLog.Calls.NEW,
+                    android.provider.CallLog.Calls.CACHED_NAME,
+                    android.provider.CallLog.Calls.CACHED_NUMBER_TYPE,
+                    android.provider.CallLog.Calls.CACHED_NUMBER_LABEL
             };
             Collections.addAll(fields, fields_names);
 
@@ -147,15 +167,19 @@ public class CallLog extends CordovaPlugin {
             try {
                 ContentResolver contentResolver = cordova.getActivity().getContentResolver();
                 Cursor mCursor = contentResolver.query(android.provider.CallLog.Calls.CONTENT_URI,
-                    fields.toArray(new String[0]),
-                    mSelectionClause,
-                    mSelectionArgs.toArray(new String[0]),
-                    android.provider.CallLog.Calls.DEFAULT_SORT_ORDER
+                        fields.toArray(new String[0]),
+                        mSelectionClause,
+                        mSelectionArgs.toArray(new String[0]),
+                        android.provider.CallLog.Calls.DEFAULT_SORT_ORDER
                 );
 
                 JSONArray result = new JSONArray();
 
                 if (mCursor != null) {
+                    Context context = this.cordova.getActivity();
+                    TelephonyManager tm = (TelephonyManager) context.getSystemService(context.TELEPHONY_SERVICE);
+                    String countryCode = tm.getSimCountryIso().toUpperCase();
+
                     while (mCursor.moveToNext()) {
                         JSONObject callLogItem = new JSONObject();
                         callLogItem.put("date", mCursor.getLong(0));
@@ -177,6 +201,43 @@ public class CallLog extends CordovaPlugin {
                             callLogItem.put("viaNumber", mCursor.getString(index));
                         }
 
+                        // Fill in contact name
+                        callLogItem.put("name", (mCursor.isNull(5))?"":mCursor.getString(5));
+                        callLogItem.put("contact", "");
+                        callLogItem.put("photo", "");
+                        callLogItem.put("thumbPhoto", "");
+                        Cursor mContactCursor;
+                        if(contacts.containsKey(mCursor.getString(1)))
+                        {
+                            mContactCursor = contacts.get(mCursor.getString(1));
+                        }
+                        else
+                        {
+                            String number = mCursor.getString(1);
+                            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP && !countryCode.isEmpty()) {
+                                 number = PhoneNumberUtils.formatNumberToE164(number, countryCode);
+                                 number = PhoneNumberUtils.normalizeNumber(number);
+                            }
+
+                            String[] mSelectionArgsContact = { "%" + number + "%" };
+                            mContactCursor = contentResolver.query(
+                                    ContactsContract.Data.CONTENT_URI,
+                                    PROJECTION,
+                                    SELECTION,
+                                    mSelectionArgsContact,
+                                    null
+                            );
+                            contacts.put(mCursor.getString(1), mContactCursor);
+                        }
+                        if (mContactCursor.moveToFirst()) {
+                            if(!mContactCursor.isAfterLast()) {
+                                callLogItem.put("name", mContactCursor.getString(1));
+                                callLogItem.put("contact", mContactCursor.getInt(2));
+                                callLogItem.put("photo", mContactCursor.getString(3));
+                                callLogItem.put("thumbPhoto", mContactCursor.getString(4));
+                            }
+                        }
+
                         result.put(callLogItem);
                     }
                 }
@@ -189,20 +250,25 @@ public class CallLog extends CordovaPlugin {
         }
     }
     private void hasReadPermission() {
-        this.callback.sendPluginResult(new PluginResult(PluginResult.Status.OK, callLogPermissionGranted(Manifest.permission.READ_CALL_LOG)));
+        this.callback.sendPluginResult(new PluginResult(PluginResult.Status.OK, callLogPermissionGranted(PERMISSIONS)));
     }
 
     private void requestReadPermission() {
-        requestPermission(Manifest.permission.READ_CALL_LOG);
+        requestPermission(PERMISSIONS);
     }
 
-    private boolean callLogPermissionGranted(String type) {
-        return cordova.hasPermission(type);
+    private boolean callLogPermissionGranted(String[] type) {
+        boolean perm = true;
+        for(int i=0; i < type.length; i++) {
+            if (!cordova.hasPermission(type[i]))
+                perm = false;
+        }
+        return perm;
     }
 
-    private void requestPermission(String type) {
+    private void requestPermission(String[] type) {
         if (!callLogPermissionGranted(type)) {
-            cordova.requestPermission(this, 12345, type);
+            cordova.requestPermissions(this, 0, type);
         } else {
             this.callback.success();
         }

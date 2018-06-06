@@ -28,6 +28,7 @@
 
     <config-file target="AndroidManifest.xml" parent="/*">
       <uses-permission android:name="android.permission.READ_CALL_LOG" />
+      <uses-permission android:name="android.permission.READ_CONTACTS" />
     </config-file>
 
     <source-file src="src/android/be/creacore/calllog/CallLog.java" target-dir="src/be/creacore/calllog" />
