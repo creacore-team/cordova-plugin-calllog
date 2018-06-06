@@ -93,3 +93,10 @@ getCallLog() returns an array of objects with these values
 
 (Android API >= 24)
 - VIA_NUMBER
+
+(Android API >= 21)
+A contact lookup is also performed on the phone number of each log item, which adds the following values (from ContactsContract.Data) if found
+- DISPLAY_NAME
+- CONTACT_ID
+- PHOTO_URI
+- PHOTO_THUMBNAIL_URI
