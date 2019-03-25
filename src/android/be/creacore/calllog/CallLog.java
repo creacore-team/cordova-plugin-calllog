@@ -189,7 +189,7 @@ public class CallLog extends CordovaPlugin {
                         callLogItem.put("new", mCursor.getInt(4));
                         callLogItem.put("cachedName", mCursor.getString(5));
                         callLogItem.put("cachedNumberType", mCursor.getInt(6));
-                        callLogItem.put("cachedNumberLabel", mCursor.getInt(7));
+                        callLogItem.put("cachedNumberLabel", mCursor.getString(7));
 
                         // Detect specifics version
                         int index = 8;
