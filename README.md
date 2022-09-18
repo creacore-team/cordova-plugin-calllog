@@ -17,27 +17,31 @@ Cordova plugin to access the call history on a device. Results can be filtered t
 
 First of all you must check / request permissions with
 
-    window.plugins.callLog.hasReadPermission(...,...)
-    window.plugins.callLog.requestReadPermission(...,...)
+```javascript
+window.plugins.callLog.hasReadPermission(...,...)
+window.plugins.callLog.requestReadPermission(...,...)
+```
 
 Then you can use the main function getCallLog(), here is an example:
 
-    let filters = [{
-        "name": "number",
-        "value": "+32477000000",
-        "operator": "==",
-    },
-    {
-        "name": "date",
-        "value": 1517266800000,
-        "operator": ">="
-    }];
+```javascript
+let filters = [{
+  "name": "number",
+  "value": "+32477000000",
+  "operator": "==",
+},
+{
+  "name": "date",
+  "value": 1517266800000,
+  "operator": ">="
+}];
 
-    window.plugins.callLog.getCallLog(filters, function(data) {
-         console.log(data);
-    }, function() {
-         // Error
-    });
+window.plugins.callLog.getCallLog(filters, function(data) {
+  console.log(data);
+}, function() {
+  // Error
+});
+```
 
 This will return all calls from/to the number +32477000000 since 2018-01-30
 
@@ -54,11 +58,13 @@ This will return all calls from/to the number +32477000000 since 2018-01-30
 
 Here is an example with the operator like
 
-    let filters = [{
-        "name": "number",
-        "value": "+32%",
-        "operator": "like",
-    }]
+```javascript
+let filters = [{
+  "name": "number",
+  "value": "+32%",
+  "operator": "like",
+}]
+```
 
 This will return all calls from/to the numbers beginning with '+32'
 
@@ -66,11 +72,13 @@ This will return all calls from/to the numbers beginning with '+32'
 
 Value can be a string, or can be an array, here is an example:
 
-    let filters = [{
-        "name": "number",
-        "value": ["+32477000000", "+32478000000"],
-        "operator": "==",
-    }]
+```javascript
+let filters = [{
+  "name": "number",
+  "value": ["+32477000000", "+32478000000"],
+  "operator": "==",
+}]
+```
 
 This will return all calls from/to the numbers +32477000000 and +32478000000
 
